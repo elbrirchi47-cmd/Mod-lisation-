@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<!-- saved from url=(0095)file:///C:/Users/elbri/Documents/Codex/2026-09-27/ai/outputs/analyse_video_assia_dynamique.html -->
+<html lang="fr"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Assia — Suivi vidéo & Énergie Dynamique</title>
+<style>
+:root{color-scheme:dark;--bg:#09111f;--panel:#111d30;--line:#263750;--cyan:#41e6da;--muted:#9aacc2;--white:#edf5ff;--orange:#ffc36b}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0,#142b43,var(--bg) 55%);color:var(--white);font:15px/1.5 system-ui,Segoe UI,sans-serif}main{max-width:1180px;margin:auto;padding:28px 20px 50px}h1,h2,p{margin-top:0}h1{font-size:clamp(1.6rem,4vw,2.5rem);margin-bottom:4px}h2{font-size:1.05rem}.sub,.muted{color:var(--muted)}.top,.panel{background:color-mix(in srgb,var(--panel) 93%,transparent);border:1px solid var(--line);border-radius:16px;padding:20px}.top{margin-bottom:16px}.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,.8fr);gap:16px}.panel{margin-bottom:16px}.wide{grid-column:1/-1}.toolbar{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}button,.upload{border:1px solid var(--line);border-radius:9px;padding:10px 14px;background:#1a2b42;color:var(--white);font:inherit;font-weight:650;cursor:pointer}button:hover,.upload:hover{border-color:var(--cyan)}button.primary,.upload{background:var(--cyan);color:#06201f;border-color:var(--cyan)}button:disabled{opacity:.45;cursor:not-allowed}input[type=file]{display:none}.screen{position:relative;overflow:hidden;border-radius:12px;background:#03070d;aspect-ratio:16/9;display:grid;place-items:center}.screen video{width:100%;height:100%;object-fit:contain}.screen canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.placeholder{position:absolute;color:var(--muted);text-align:center;padding:20px;pointer-events:none}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{padding:13px;border:1px solid var(--line);background:#0b1525;border-radius:11px}.metric small{display:block;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:.72rem}.metric strong{font-size:1.45rem}.formula{font: .87rem/1.65 ui-monospace,Consolas,monospace;color:#b7cbe1;background:#0b1525;padding:12px;border-radius:10px;white-space:pre-wrap}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row input[type=number],.row input[type=text]{background:#0b1525;border:1px solid var(--line);border-radius:8px;padding:9px;color:var(--white)}.row input[type=number]{width:90px}.row input[type=text]{min-width:170px;flex:1}.timeline{display:grid;gap:8px;max-height:300px;overflow:auto}.event{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;background:#0b1525;border:1px solid var(--line);border-radius:9px}.event b{color:var(--cyan)}.event small{color:var(--muted)}textarea{width:100%;min-height:220px;background:#08111e;border:1px solid var(--line);border-radius:10px;padding:13px;color:#dcecff;font: .86rem/1.5 ui-monospace,Consolas,monospace}#status{color:var(--orange)}.hint{font-size:.88rem;color:var(--muted)}@media(max-width:760px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}main{padding:16px 12px}}
+</style>
+<style>.screen{aspect-ratio:16/9;max-height:72vh;min-height:200px}.screen canvas{pointer-events:none;cursor:default}.screen.tracking canvas{pointer-events:auto;cursor:crosshair}.panel:fullscreen{width:100vw;height:100vh;overflow:auto;border:0;border-radius:0}.panel:fullscreen .screen{max-height:calc(100vh - 260px);min-height:220px}select{background:#0b1525;color:var(--white);border:1px solid var(--line);border-radius:7px;padding:7px}@media(max-width:600px){.screen{min-height:180px;max-height:55vh}}</style>
+<script>
+/* Assia.js intégré pour que ce HTML soit autonome. */
+(()=>{'use strict';class PointTracker{constructor(){this.points=[];this.previous=null;this.width=0;this.height=0;this.nextId=1}gray(rgba,width,height){const out=new Uint8Array(width*height);for(let i=0,p=0;i<out.length;i++,p+=4)out[i]=(rgba[p]*3+rgba[p+1]*6+rgba[p+2])/10;return out}add(x,y,frame,width,height,name){const p={id:this.nextId++,name:name||`Point ${this.nextId-1}`,x,y,confidence:100,trail:[{x,y}]};this.points.push(p);this.previous=frame;this.width=width;this.height=height;return p}remove(id){this.points=this.points.filter(p=>p.id!==Number(id))}clear(){this.points=[];this.previous=null}update(frame,width,height){if(!this.previous||width!==this.width||height!==this.height){this.previous=frame;this.width=width;this.height=height;return this.points}const old=this.previous,radius=4,patch=3;for(const p of this.points){let best=Infinity,bx=Math.round(p.x),by=Math.round(p.y);const ox=Math.round(p.x),oy=Math.round(p.y);for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){const x=ox+dx,y=oy+dy;if(x<patch||y<patch||x>=width-patch||y>=height-patch)continue;let sad=0,n=0;for(let py=-patch;py<=patch;py+=2)for(let px=-patch;px<=patch;px+=2){const a=(oy+py)*width+ox+px,b=(y+py)*width+x+px;sad+=Math.abs(old[a]-frame[b]);n++}sad/=n;if(sad<best){best=sad;bx=x;by=y}}p.x=bx;p.y=by;p.confidence=Math.max(0,Math.min(100,100-best*1.15));p.trail.push({x:bx,y:by});if(p.trail.length>120)p.trail.shift()}this.previous=frame;return this.points}}window.Assia=Object.assign(window.Assia||{},{PointTracker,version:'1.0'})})();
+</script></head>
+<body><main>
+<header class="top">
+  <h1>Assia <span style="color:var(--cyan)">/</span> Capteur d'Énergie Dynamique</h1>
+  <p class="sub">Modélisation de l'énergie illimitée des flux d'images (lives et passé), résolution, dynamique et quantique[span_1](start_span)[span_1](end_span).</p>
+  <div class="toolbar">
+    <label class="upload">Choisir une vidéo<input id="file" type="file" accept="video/*"></label>
+    <button id="camera">Activer la caméra</button>
+    <button id="start" class="primary" disabled="">Lancer la captation dynamique</button>
+    <button id="stop" disabled="">Arrêter et rapporter</button>
+  </div>
+  <p class="hint" id="status">Chargez une vidéo ou activez la caméra pour initialiser le capteur dynamique[span_2](start_span)[span_2](end_span).</p>
+</header>
+<section class="grid">
+<article class="panel">
+  <h2>Flux Vidéo et Capteurs Dynamiques</h2>
+  <div class="screen" id="videoScreen"><video id="video" playsinline="" controls=""></video><canvas id="overlay"></canvas><div class="placeholder" id="placeholder">Votre flux vidéo/image apparaîtra ici[span_3](start_span)[span_3](end_span)</div></div>
+  <div class="toolbar" style="margin-top:10px">
+    <button id="playPause">▶ Lecture</button><button id="back">⏪ −5 s</button><button id="forward">+5 s ⏩</button><button id="videoStop">■ Arrêter</button><button id="mute">🔊 Son</button>
+    <label class="hint">Volume <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume"></label>
+    <label class="hint">Vitesse <select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="0.75">0,75×</option><option value="1" selected="">1×</option><option value="1.25">1,25×</option><option value="1.5">1,5×</option><option value="2">2×</option></select></label>
+    <button id="pip">▣ Image dans l’image</button><button id="fullscreen">⛶ Plein écran</button>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <span class="hint" id="videoTime">00:00 / 00:00</span>
+    <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Position dans la vidéo" style="flex:1;accent-color:var(--cyan)">
+  </div>
+  <p class="hint">Lancez la captation puis cliquez sur l'image pour créer un point d'ancrage dynamique capturant l'élan énergétique[span_4](start_span)[span_4](end_span).</p>
+  <div id="pointList" class="timeline"><p class="muted">Aucun point énergétique capté.</p></div>
+</article>
+
+<article class="panel">
+  <h2>Métriques de l'Énergie Dynamique</h2>
+  <div class="metrics">
+    <div class="metric"><small>Élan Dynamique</small><strong id="motion">0 %</strong></div>
+    <div class="metric"><small>Capteurs Actifs</small><strong id="objects">0</strong></div>
+    <div class="metric"><small>Confiance du Signal</small><strong id="confidence">—</strong></div>
+    <div class="metric"><small>Résolution / FPS</small><strong id="fps">0</strong></div>
+    <div class="metric"><small>Tempsécoulé</small><strong id="elapsed">00:00</strong></div>
+    <div class="metric"><small>État du Système</small><strong id="state">Prêt</strong></div>
+  </div>
+  <h2 style="margin:18px 0 8px">Formules de Captation</h2>
+  <div class="formula">Élan Dynamique (%) = pixels modifiés ÷ pixels analysés × 100[span_5](start_span)[span_5](end_span)
+Confiance Quantique = min(100, pixels modifiés ÷ seuil × 100)[span_6](start_span)[span_6](end_span)
+Évolution Énergétique (%) = (après − avant) ÷ max(|avant|, 0,1) × 100[span_7](start_span)[span_7](end_span)</div>
+  <p class="hint">Modélisation mathématique du mouvement et de la dynamique pour créer de la valeur et des statuts énergétiques.</p>
+</article>
+
+<article class="panel">
+  <h2>Analyse Avant / Après (Élan du Futur)</h2>
+  <div class="metrics">
+    <div class="metric"><small>Avant — Énergie Moyenne</small><strong id="before">—</strong></div>
+    <div class="metric"><small>Après — Énergie Moyenne</small><strong id="after">—</strong></div>
+    <div class="metric"><small>Variation de l'Élan</small><strong id="delta">—</strong></div>
+    <div class="metric"><small>Durée de la Session</small><strong id="duration">00:00</strong></div>
+  </div>
+  <p class="hint">Permet de quantifier la base énergétique créée pour le développement futur et les voyages spatio-temporels.</p>
+</article>
+
+<article class="panel">
+  <h2>Points d'Ancrage Dynamiques</h2>
+  <div class="row">
+    <input id="pointName" type="text" maxlength="60" placeholder="Nom du point (ex. Point Quantique)"><button id="addPoint">Capter le point courant</button>
+  </div>
+  <p class="hint">Enregistrez un point clé pour comparer les valeurs énergétiques générées à cet instant.</p>
+  <div id="timeline" class="timeline"><p class="muted">Aucun point énergétique enregistré.</p></div>
+</article>
+
+<article class="panel wide">
+  <h2>Rapport Global du Système</h2>
+  <textarea id="report" readonly="" placeholder="Le rapport quantique et de session apparaîtra à l'arrêt de la captation[span_8](start_span)[span_8](end_span)."></textarea>
+  <div class="toolbar">
+    <button id="downloadJson">Télécharger JSON</button>
+    <button id="downloadHtml">Télécharger le rapport HTML</button>
+    <button id="downloadVideo">Télécharger la vidéo enregistrée[span_9](start_span)[span_9](end_span)</button>
+  </div>
+  <p class="hint">Génération locale sécurisée de vos secrets et de votre architecture de capteurs dynamiques[span_10](start_span)[span_10](end_span).</p>
+</article>
+</section></main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),v=$('video'),canvas=$('overlay'),ctx=canvas.getContext('2d'),work=document.createElement('canvas'),wctx=work.getContext('2d',{willReadFrequently:true});
+let stream=null,recorder=null,chunks=[],running=false,raf=0,last=null,lastFrame=0,frames=0,fpsAt=0,fpsNow=0,samples=[],points=[],started=0,sourceName='',objectUrl='',pointTracker=new Assia.PointTracker();
+const setStatus=t=>$('status').textContent=t,fmt=s=>{s=Math.max(0,Math.floor(s||0));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`},avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+function resize(){const r=v.getBoundingClientRect(),d=devicePixelRatio||1;canvas.width=Math.max(1,Math.round(r.width*d));canvas.height=Math.max(1,Math.round(r.height*d));ctx.setTransform(d,0,0,d,0,0)}
+window.addEventListener('resize',resize);v.addEventListener('loadedmetadata',()=>{$('placeholder').hidden=true;const screen=v.closest('.screen');screen.style.aspectRatio=`${v.videoWidth} / ${v.videoHeight}`;resize();$('start').disabled=false;setStatus(`Source prête : ${sourceName||'caméra'}. Écran adapté en ${v.videoWidth} × ${v.videoHeight}. Lancez la captation.`);updateVideoTime()});v.addEventListener('timeupdate',updateVideoTime);v.addEventListener('durationchange',updateVideoTime);v.addEventListener('play',()=>$('playPause').textContent='⏸ Pause');v.addEventListener('pause',()=>$('playPause').textContent='▶ Lecture');document.addEventListener('fullscreenchange',()=>$('fullscreen').textContent=document.fullscreenElement?'⛶ Quitter le plein écran':'⛶ Plein écran');
+function updateVideoTime(){const d=Number.isFinite(v.duration)?v.duration:0;$('videoTime').textContent=`${fmt(v.currentTime)} / ${fmt(d)}`;if(!$('seek').matches(':active'))$('seek').value=d?Math.round(v.currentTime/d*1000):0}
+$('playPause').onclick=()=>{if(v.paused)v.play().catch(()=>{});else v.pause()};$('back').onclick=()=>{v.currentTime=Math.max(0,v.currentTime-5)};$('forward').onclick=()=>{v.currentTime=Number.isFinite(v.duration)?Math.min(v.duration,v.currentTime+5):v.currentTime+5};$('videoStop').onclick=()=>{v.pause();v.currentTime=0;if(running)$('stop').click()};$('speed').onchange=e=>{v.playbackRate=Number(e.target.value)};$('seek').oninput=e=>{if(Number.isFinite(v.duration))v.currentTime=Number(e.target.value)/1000*v.duration};$('volume').oninput=e=>{v.volume=Number(e.target.value);v.muted=v.volume===0;$('mute').textContent=v.muted?'🔇 Son coupé':'🔊 Son'};$('mute').onclick=()=>{v.muted=!v.muted;$('mute').textContent=v.muted?'🔇 Son coupé':'🔊 Son'};$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await$('videoScreen').closest('.panel').requestFullscreen()}catch(e){setStatus(`Plein écran indisponible : ${e.message}`)}};$('pip').onclick=async()=>{try{if(document.pictureInPictureElement)await document.exitPictureInPicture();else if(document.pictureInPictureEnabled)await v.requestPictureInPicture();else setStatus('Image dans l’image non prise en charge.')}catch(e){setStatus(`Image dans l’image indisponible : ${e.message}`)}};
+$('file').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;stopTracks();if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);sourceName=f.name;v.srcObject=null;v.src=objectUrl;v.play().catch(()=>{});$('placeholder').hidden=false});
+function stopTracks(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}if(recorder&&recorder.state==='recording')recorder.stop()}
+$('camera').onclick=async()=>{try{stopTracks();stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});v.pause();v.removeAttribute('src');v.srcObject=stream;sourceName='Caméra';v.play();chunks=[];const mime=['video/webm;codecs=vp9','video/webm'].find(MediaRecorder.isTypeSupported);recorder=new MediaRecorder(stream,mime?{mimeType:mime}:{});recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.start(1000)}catch(e){setStatus(`Caméra indisponible : ${e.message}`)}};
+function drawFrame(){if(!running)return;raf=requestAnimationFrame(drawFrame);if(v.readyState<2||v.videoWidth===0)return;const now=performance.now();if(now-lastFrame<100)return;lastFrame=now;frames++;if(now-fpsAt>=1000){fpsNow=frames*1000/(now-fpsAt);frames=0;fpsAt=now;$('fps').textContent=fpsNow.toFixed(0)}
+const sw=160,sh=Math.max(90,Math.round(sw*v.videoHeight/v.videoWidth));work.width=sw;work.height=sh;wctx.drawImage(v,0,0,sw,sh);const pix=wctx.getImageData(0,0,sw,sh).data;let changed=0,minX=sw,minY=sh,maxX=0,maxY=0;const step=4,threshold=38;if(last){for(let y=2;y<sh-2;y+=step)for(let x=2;x<sw-2;x+=step){const i=(y*sw+x)*4,d=Math.abs(pix[i]-last[i])+Math.abs(pix[i+1]-last[i+1])+Math.abs(pix[i+2]-last[i+2]);if(d>threshold){changed++;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y)}}}const gray=pointTracker.gray(pix,sw,sh);pointTracker.update(gray,sw,sh);last=new Uint8ClampedArray(pix);
+const total=Math.ceil((sw-4)/step)*Math.ceil((sh-4)/step),pct=changed/Math.max(1,total)*100,confidence=Math.min(100,changed/Math.max(1,total*.06)*100);samples.push({t:(now-started)/1000,m:pct});$('motion').textContent=pct.toFixed(1)+' %';$('objects').textContent=changed>2?'1 zone':'0';$('confidence').textContent=changed>2?confidence.toFixed(0)+' %':'—';$('elapsed').textContent=fmt((now-started)/1000);$('state').textContent='Captation active';
+resize();ctx.clearRect(0,0,canvas.width,canvas.height);const r=v.getBoundingClientRect(),fit=Math.min(r.width/v.videoWidth,r.height/v.videoHeight),sx=v.videoWidth*fit/sw,sy=v.videoHeight*fit/sh,ox=(r.width-v.videoWidth*fit)/2,oy=(r.height-v.videoHeight*fit)/2;if(changed>2){ctx.strokeStyle='#41e6da';ctx.lineWidth=2;ctx.strokeRect(ox+minX*sx,oy+minY*sy,(maxX-minX)*sx,(maxY-minY)*sy);ctx.fillStyle='#41e6da';ctx.font='bold 13px system-ui';ctx.fillText(`Élan ${pct.toFixed(1)} %`,ox+minX*sx,Math.max(15,oy+minY*sy-6))}for(const p of pointTracker.points){const px=ox+p.x*sx,py=oy+p.y*sy;ctx.beginPath();ctx.arc(px,py,7,0,Math.PI*2);ctx.fillStyle=p.confidence>35?'#ffc36b':'#fb7185';ctx.fill();ctx.strokeStyle='#09111f';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.fillText(`${p.name} · ${p.confidence.toFixed(0)}%`,px+10,py-8)}updatePointList();updateCompare()}
+canvas.addEventListener('click',e=>{if(!running||v.readyState<2)return;const sh=Math.max(90,Math.round(160*v.videoHeight/v.videoWidth)),r=v.getBoundingClientRect(),fit=Math.min(r.width/v.videoWidth,r.height/v.videoHeight),vw=v.videoWidth*fit,vh=v.videoHeight*fit,ox=(r.width-vw)/2,oy=(r.height-vh)/2,lx=e.clientX-r.left-ox,ly=e.clientY-r.top-oy;if(lx<0||ly<0||lx>vw||ly>vh)return;const x=lx/vw*160,y=ly/vh*sh,pix=wctx.getImageData(0,0,160,sh).data,gray=pointTracker.gray(pix,160,sh),name=$('pointName').value.trim()||`P${pointTracker.points.length+1}`,p=pointTracker.add(x,y,gray,160,sh,name);points.push({id:p.id,name:p.name,t:(performance.now()-started)/1000,motion:+$('motion').textContent.replace('\%','')\vert{}\vert{}0,confidence:100});$('pointName').value='';renderPoints();updatePointList()});
+function updatePointList(){$('pointList').innerHTML=pointTracker.points.length?pointTracker.points.map(p=>`<div class="event"><span><b>${escapeHtml(p.name)}</b><br><small>Position ${p.x.toFixed(0)}, ${p.y.toFixed(0)} · confiance ${p.confidence.toFixed(0)} % · ${p.trail.length} relevés</small></span><button data-track-remove="${p.id}" aria-label="Retirer le point">×</button></div>`).join(''):'<p class="muted">Aucun point dynamique capté. Cliquez sur le flux vidéo.</p>'}
+$('pointList').onclick=e=>{const b=e.target.closest('[data-track-remove]');if(b){pointTracker.remove(b.dataset.trackRemove);points=points.filter(p=>p.id!==Number(b.dataset.trackRemove));updatePointList()}};
+function updateCompare(){if(!samples.length)return;const mid=(samples[0].t+samples[samples.length-1].t)/2,a=samples.filter(s=>s.t<=mid).map(s=>s.m),b=samples.filter(s=>s.t>mid).map(s=>s.m),x=avg(a),y=avg(b),change=(y-x)/Math.max(Math.abs(x),.1)*100;$('before').textContent=x.toFixed(1)+' \%';$('after').textContent=(b.length?y:x).toFixed(1)+' %';$('delta').textContent=(b.length?(change>0?'+':'')+change.toFixed(1)+' \%':'—');$('duration').textContent=fmt(samples.at(-1).t)}
+function renderPoints(){$('timeline').innerHTML=points.length?points.map(p=>`<div class="event"><span><b>${escapeHtml(p.name)}</b><br><small>${fmt(p.t)} · élan ${p.motion.toFixed(1)} % · confiance ${p.confidence.toFixed(0)} %</small></span><button data-remove="${p.id}" aria-label="Supprimer">×</button></div>`).join(''):'<p class="muted">Aucun point enregistré.</p>';}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('addPoint').onclick=()=>{if(!running){setStatus('Lancez la captation avant d’ajouter un point.');return}points.push({id:crypto.randomUUID(),name:$('pointName').value.trim()||`Point ${points.length+1}`,t:(performance.now()-started)/1000,motion:+$('motion').textContent.replace('\%','')\vert{}\vert{}0,confidence:+$('confidence').textContent.replace('%','')||0});$('pointName').value='';renderPoints()};$('timeline').onclick=e=>{const b=e.target.closest('[data-remove]');if(b){points=points.filter(p=>p.id!==b.dataset.remove);renderPoints()}};
+$('start').onclick=async()=>{if(!v.src&&!v.srcObject){setStatus('Choisissez une vidéo ou activez la caméra.');return}try{await v.play()}catch{}running=true;$('videoScreen').classList.add('tracking');last=null;samples=[];points=[];pointTracker.clear();renderPoints();updatePointList();started=performance.now();lastFrame=0;fpsAt=started;frames=0;$('start').disabled=true;$('stop').disabled=false;$('state').textContent='Captation active';$('report').value='';setStatus('Captation dynamique en cours. Exploitation de l’énergie des flux d’images.');drawFrame()};
+function buildReport(){const first=samples.filter(s=>s.t<=(samples[0].t+samples.at(-1).t)/2).map(s=>s.m),second=samples.filter(s=>s.t>(samples[0].t+samples.at(-1).t)/2).map(s=>s.m),before=avg(first),after=avg(second.length?second:first),variation=(after-before)/Math.max(Math.abs(before),.1)*100;return {application:'Assia.js — Capteur d’Énergie Dynamique',version:Assia.version,source:sourceName||'Vidéo locale',date:new Date().toISOString(),statut:'Terminé',methode:'Captation dynamique de l’énergie des images, résolution et mouvement pour modélisation quantique future.',dureeSecondes:+(samples.at(-1)?.t||0).toFixed(2),formules:{elan:'pixels modifiés / pixels échantillonnés × 100',confiance:'confiance de l’appariement dynamique (%)',evolution:'(après - avant) / max(|avant|, 0,1) × 100'},resume:{energieAvantPct:+before.toFixed(2),energieApresPct:+after.toFixed(2),variationPct:+variation.toFixed(2),fpsMoyen:+fpsNow.toFixed(1),echantillons:samples.length},pointsCaptures:points.map(({id,...p})=>p),pointsSuivis:pointTracker.points.map(p=>({nom:p.name,x:+p.x.toFixed(1),y:+p.y.toFixed(1),confiancePct:+p.confidence.toFixed(1),positions:p.trail.map(q=>({x:+q.x.toFixed(1),y:+q.y.toFixed(1)}))}))}}
+$('stop').onclick=()=>{if(!running)return;running=false;$('videoScreen').classList.remove('tracking');cancelAnimationFrame(raf);$('start').disabled=false;$('stop').disabled=true;$('state').textContent='Terminé';if(recorder&&recorder.state==='recording')recorder.stop();const r=buildReport();$('report').value=JSON.stringify(r,null,2);setStatus('Captation terminée. Rapport quantique de l’énergie générée prêt.')};
+function download(blob,name){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+$('downloadJson').onclick=()=>{if(!$('report').value)return setStatus('Arrêtez la captation pour générer un rapport.');download(new Blob([$('report').value],{type:'application/json'}),`rapport_energie_${Date.now()}.json`)};
+$('downloadHtml').onclick=()=>{if(!$('report').value)return setStatus('Arrêtez la captation pour générer un rapport.');const data=JSON.parse($('report').value),content=`<!doctype html><html lang="fr"><meta charset="utf-8"><title>Rapport Énergie Dynamique</title><body style="font:16px system-ui;max-width:900px;margin:40px auto;padding:0 18px;color:#172437"><h1>Rapport — Capteur d’Énergie Dynamique</h1><p>Généré le ${escapeHtml(new Date(data.date).toLocaleString('fr-FR'))}</p><pre style="white-space:pre-wrap;background:#f2f6fa;padding:20px;border-radius:12px">${escapeHtml(JSON.stringify(data,null,2))}</pre></body></html>`;download(new Blob([content],{type:'text/html;charset=utf-8'}),`rapport_energie_${Date.now()}.html`)};
+$('downloadVideo').onclick=()=>{if(!chunks.length)return setStatus('Aucune vidéo enregistrée dans cette session.');download(new Blob(chunks,{type:recorder?.mimeType||'video/webm'}),`session_energie_${Date.now()}.webm`)};
+})();
+</script>
+
+</body></html>
